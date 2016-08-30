@@ -1,0 +1,69 @@
+#!/bin/bash
+#$-q all.q@cube[ab]*
+#gatk pipeline usage for snp short indel calling
+REF=$1
+SAM=$2
+OUTPUT_DIR=$3
+
+
+SAM_BASE=$(basename $SAM | sed 's/\..am$//')
+PATH_GATK=$4
+PATH_PICARD=$5
+PATH_SAMTOOLS=$6
+BAM=$OUTPUT_DIR/$SAM_BASE.marked.rgroup.bam
+
+#bam to sam conversion
+$PATH_SAMTOOLS/samtools view -h -o $OUTPUT_DIR/$SAM_BASE.sam $SAM
+
+#first: sam to bam conversion and indexing
+java -Xmx4g -Djava.io.tmpdir=/tmp -jar $PATH_PICARD/SortSam.jar SO=coordinate INPUT=$OUTPUT_DIR/$SAM_BASE.sam OUTPUT=$OUTPUT_DIR/$SAM_BASE.bam VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true
+
+#marking duplicates
+java -Xmx4g -Djava.io.tmpdir=/tmp -jar $PATH_PICARD/MarkDuplicates.jar INPUT=$OUTPUT_DIR/$SAM_BASE.bam OUTPUT=$OUTPUT_DIR/$SAM_BASE.marked.bam METRICS_FILE=metrics CREATE_INDEX=true VALIDATION_STRINGENCY=LENIENT
+
+#replace/add read group header
+java -Xmx4g -Djava.io.tmpdir=/tmp -jar $PATH_PICARD/AddOrReplaceReadGroups.jar I=$OUTPUT_DIR/$SAM_BASE.marked.bam O=$OUTPUT_DIR/$SAM_BASE.marked.rgroup.bam LB=D PL=illumina PU=S SM=B VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true
+
+#Step1:
+#run gatk to realign reads to possible indels: 1st creates a table of possible indels
+java -Xmx4g -jar $PATH_GATK/GenomeAnalysisTKLite.jar -T RealignerTargetCreator -R $REF -o $OUTPUT_DIR/$SAM_BASE.marked.rgroup.bam.list -I $BAM
+
+#2nd: start the realigning step
+java -Xmx4g -Djava.io.tmpdir=/tmp -jar $PATH_GATK/GenomeAnalysisTKLite.jar -I $BAM -R $REF -T IndelRealigner -targetIntervals $OUTPUT_DIR/$SAM_BASE.marked.rgroup.bam.list -o $OUTPUT_DIR/$SAM_BASE.mark.realign.fix.bam
+echo "fix paired end data"
+#for paired end data, the mate information must be fixed:
+# java -Djava.io.tmpdir=/tmp/flx-auswerter -jar $PATH_PICARD/FixMateInformation.jar INPUT=$OUTPUT_DIR/$SAM_BASE.mark.realign.bam OUTPUT=$OUTPUT_DIR/$SAM_BASE.mark.realign.fix.bam SO=coordinate VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true
+
+#echo "recalibration1:"
+#recalibration of base quality scores: does not work with Lite version!!!
+#java -Xmx4g -jar $PATH_GATK/GenomeAnalysisTKLite.jar -T BaseRecalibrator -I $OUTPUT_DIR/$SAM_BASE.mark.realign.fix.bam -R $REF -o $OUTPUT_DIR/recalibration_report.grp
+
+#echo "recalibration2:"
+#recalibration of base quality scores: 1st Count covariates --DBSNP dbsnp132.txt  (for novel bacterial populations there may be no covariates known, so use: -run_without_dbsnp_potentially_ruining_quality )
+#base recalibrator
+#java -Xmx4g -jar $PATH_GATK/GenomeAnalysisTKLite.jar -T PrintReads -R $REF -I $OUTPUT_DIR/$SAM_BASE.mark.realign.fix.bam -BQSR $OUTPUT_DIR/recalibration_report.grp -o $OUTPUT_DIR/$SAM_BASE.mark.realign.fix.cal.bam
+
+#wtf --disable_indel_quals
+java -Xmx4g -jar $PATH_GATK/GenomeAnalysisTKLite.jar -T PrintReads -R $REF -I $OUTPUT_DIR/$SAM_BASE.mark.realign.fix.bam --disable_indel_quals -o $OUTPUT_DIR/$SAM_BASE.mark.realign.fix.cal.bam
+
+#run unified genotyper for raw snp calling
+java -Xmx4g -jar $PATH_GATK/GenomeAnalysisTKLite.jar -glm BOTH -R $REF -T UnifiedGenotyper -I $OUTPUT_DIR/$SAM_BASE.mark.realign.fix.cal.bam -o $OUTPUT_DIR/$SAM_BASE.snps.vcf -metrics snps.metrics -stand_call_conf 50.0 -stand_emit_conf 10.0 -dcov 1000 -nt 2 -A DepthOfCoverage
+
+#filter vcf
+java -Xmx2g -jar $PATH_GATK/GenomeAnalysisTKLite.jar -R $REF -T VariantFiltration --variant $OUTPUT_DIR/$SAM_BASE.snps.vcf -o $OUTPUT_DIR/$SAM_BASE.snps.filtered.vcf \
+--clusterWindowSize 10 \
+--filterExpression "MQ0 >= 4 && ((MQ0 / (1.0 * DP)) > 0.1)" \
+--filterName "HARD_TO_VALIDATE" \
+--filterExpression "DP < 5 " \
+--filterName "LowCoverage" \
+--filterExpression "QUAL < 30.0 " \
+--filterName "VeryLowQual" \
+--filterExpression "QUAL > 30.0 && QUAL < 50.0 " \
+--filterName "LowQual" \
+--filterExpression "QD < 1.5 " \
+--filterName "LowQD" \
+--filterExpression "FS > 100.0 " \
+--filterName "StrandBias"
+
+#remove sam file
+rm $OUTPUT_DIR/$SAM_BASE.sam

@@ -1,0 +1,6 @@
+#!/bin/bash
+
+INFILE=$1
+
+zcat $INFILE | grep -E -A1 '^@' | head -n100 | grep -v @ | grep -v - | awk '{ print length($0); }' | sort | uniq -c | sort -nr
+
