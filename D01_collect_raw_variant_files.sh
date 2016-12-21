@@ -42,6 +42,18 @@ do
   ITER=$( basename $file | grep -o "bwa_[0-9]*[\._]" | grep -o '[0-9]*' )
   cp $file $RAW_VARIANTS_FOLDER/lofreq2_v${ITER}_$(basename $file);
 done
+# copy lofreq21
+for file in $PATH_LOFREQ21_DATA/$PATH_DATA/$BAM_NAME_BASE*.vcf;
+do
+  ITER=$( basename $file | grep -o "bwa_[0-9]*[\._]" | grep -o '[0-9]*' )
+  cp $file $RAW_VARIANTS_FOLDER/lofreq21_v${ITER}_$(basename $file);
+done
+# copy freebayes
+for file in $PATH_FREEBAYES_DATA/$PATH_DATA/$BAM_NAME_BASE*_pool.vcf;
+do
+  ITER=$( basename $file | grep -o "bwa_[0-9]*[\._]" | grep -o '[0-9]*' )
+  cp $file $RAW_VARIANTS_FOLDER/freebayes_v${ITER}_$(basename $file);
+done
 # copy breakdancer
 for file in $PATH_BREAKD_DATA/$PATH_DATA/$BAM_NAME_BASE*.ctx;
 do

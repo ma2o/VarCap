@@ -10,6 +10,10 @@ echo -n "samtools" >samtools.counts
 echo -n "gatk" >gatk.counts
 >lofreq2.all
 echo -n "lofreq2" >lofreq2.counts
+>freebayes.all
+echo -n "freebayes" >freebayes.counts
+>freebayes_indel_small.all
+echo -n "freebayes_indel_small" >freebayes_indel_small.counts
 >varscan_indel_small.all
 echo -n "varscan_indel_small" >varscan_indel_small.counts
 >pindel_indel_small.all
@@ -67,6 +71,7 @@ COUNTER=0
 ITER=0
 for var in $( ls | grep -E 'true_pos.vcf'); do
   if (($ITER < $MAX_ITER)); then
+    # SNPs
     cat $var | grep -e 'SNP' | grep -e 'varscan'| cut -f1 | sort -u >>varscan.all;
     echo -n " $( cat $var | grep -e 'SNP' | grep -e 'varscan'| cut -f1 | sort -u | wc -l )" >>varscan.counts;
     cat $var | grep -e 'SNP' | grep -e 'samtools'| cut -f1 | sort -u >>samtools.all;
@@ -76,10 +81,16 @@ for var in $( ls | grep -E 'true_pos.vcf'); do
     cat $var | grep -e 'SNP' | grep -e 'lofreq'| grep -v 'lofreq2' | cut -f1 | sort -u >>lofreq1.all;
     cat $var | grep -e 'SNP' | grep -e 'lofreq2'| cut -f1 | sort -u >>lofreq2.all;
     echo -n " $( cat $var | grep -e 'SNP' | grep -e 'lofreq2'| cut -f1 | sort -u | wc -l )" >>lofreq2.counts;
+    cat $var | grep -E 'SNP|SNPC' | grep -e 'freebayes'| cut -f1 | sort -u >>freebayes.all;
+    echo -n " $( cat $var | grep -E 'SNP|SNPC' | grep -e 'freebayes'| cut -f1 | sort -u | wc -l )" >>freebayes.counts;
+    # InDels small
     cat $var | grep -E 'DEL|INS|IND|LI' | grep -Ev 'DUP|ITX' | grep -e 'varscan' | cut -f1 | sort -u >>varscan_indel_small.all;
     echo -n " $( cat $var | grep -E 'DEL|INS|IND|LI' | grep -Ev 'DUP|ITX' | grep -e 'varscan' | cut -f1 | sort -u | wc -l )" >>varscan_indel_small.counts;
     cat $var | grep -E 'DEL|INS|IND|LI' | grep -Ev 'DUP|ITX' | grep -e 'pindel' | awk '{ if ($7 <= 10) print }' | cut -f1 | sort -u >>pindel_indel_small.all;
     echo -n " $( cat $var | grep -E 'DEL|INS|IND|LI' | grep -Ev 'DUP|ITX' | grep -e 'pindel' | awk '{ if ($7 <= 10) print }' | cut -f1 | sort -u | wc -l )" >>pindel_indel_small.counts;
+    cat $var | grep -E 'DEL|INS|IND|LI|COMPLEX|INSC' | grep -Ev 'DUP|ITX' | grep -e 'freebayes' | cut -f1 | sort -u >>freebayes_indel_small.all;
+    echo -n " $( cat $var | grep -E 'DEL|INS|IND|LI|COMPLEX|INSC' | grep -Ev 'DUP|ITX' | grep -e 'freebayes' | cut -f1 | sort -u | wc -l )" >>freebayes_indel_small.counts;
+    # InDel large
     cat $var | grep -E 'DEL|INS|IND|LI' | grep -Ev 'DUP|ITX' | grep -e 'pindel' | awk '{ if ($7 > 10) print }' | cut -f1 | sort -u >>pindel_indel_large.all;
     echo -n " $( cat $var | grep -E 'DEL|INS|IND|LI' | grep -Ev 'DUP|ITX' | grep -e 'pindel' | awk '{ if ($7 > 10) print }' | cut -f1 | sort -u | wc -l )" >>pindel_indel_large.counts;
     cat $var | grep -E 'DEL|INS|IND|LI' | grep -Ev 'DUP|ITX' | grep -e 'breakdancer' | cut -f1 | sort -u >>breakdancer_indel_large.all;
@@ -128,9 +139,9 @@ while read -r line; do
   # echo $line
   TOOL=$( echo $line | cut -d' ' -f1 )
   TOTAL=0
-  if [[ "$TOOL" == "varscan" || "$TOOL" == "lofreq2" || "$TOOL" == "samtools" || "$TOOL" == "gatk" ]];then
+  if [[ "$TOOL" == "varscan" || "$TOOL" == "lofreq2" || "$TOOL" == "samtools" || "$TOOL" == "gatk" || "$TOOL" == "freebayes" ]];then
     TOTAL=$TOT_SNP
-  elif [[ "$TOOL" == "varscan_indel_small" || "$TOOL" == "pindel_indel_small" ]]; then
+  elif [[ "$TOOL" == "varscan_indel_small" || "$TOOL" == "pindel_indel_small" || "$TOOL" == "freebayes_indel_small" ]]; then
     TOTAL=$TOT_INDEL_SMALL
   elif [[ "$TOOL" == "delly_indel_large" || "$TOOL" == "pindel_indel_large" || "$TOOL" == "breakdancer_indel_large" || "$TOOL" == "cortex_indel_large" ]]; then
     TOTAL=$TOT_INDEL_LARGE

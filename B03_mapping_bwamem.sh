@@ -42,7 +42,7 @@ do
   EXECOM="${PATH_SCRIPTS}/run_bwamem2bam2.sh $PATH_PROJECTS_DATA/$PROJ_NAME $i $SYSTEM_CONFIG"
   # bash ${EXECOM}
   # --dependency=afterok:<jobID_A:jobID_C:jobID_D>
-  echo ${JOBLIST}
+  # echo ${JOBLIST}
   sbatch --dependency=afterok:${JOBLIST} ${EXECOM} >$PATH_LOGS/SLURM_B02_${i}.txt
 done
 

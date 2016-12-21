@@ -35,6 +35,7 @@ my %caller_data = (
 	varscan => ["varscan",[".filter.snp",".filter.indel"]],
 	lofreq => ["lofreq",["_lofreq_filter"]],
 	lofreq2 => ["lofreq2",["_lofreq2_filter.vcf"]],
+	freebayes => ["freebayes",["_pool.vcf"]],
 	breakdancer => ["breakd",[".ctx"]],
 	delly => ["delly",[".del.txt",".dup.txt",".inv.txt",".jmp.txt"]],
 	delly_072 => ["delly_072",[".del.vcf",".dup.vcf",".ins.vcf",".tra.vcf",".inv.vcf"]],
@@ -143,6 +144,10 @@ sub filename_iteration {
 		    if ($caller eq "lofreq2"){
 		  	  #print "ex_lofreq2: \n";
 		  	  extract_lofreq2($infile, $i, $caller, $min_reads);
+		    }
+		    if ($caller eq "freebayes"){
+		  	  #print "ex_lofreq2: \n";
+		  	  extract_freebayes($infile, $i, $caller, $min_reads);
 		    }
 		    if ($caller eq "breakdancer"){
 		  	  #print "ex_breakdancer: \n";

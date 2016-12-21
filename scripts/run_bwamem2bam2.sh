@@ -4,7 +4,7 @@
 #SBATCH --job-name=wVCbwamem
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=10000
-#SBATCH --nice=1000
+#SBATCH --nice=500
 #SBATCH --output=bwamem2bam2-%A_%a.out
 #SBATCH --error=bwamem2bam2-%A_%a.err
 
@@ -18,8 +18,11 @@ CONFIG_FILE=$PROJ_BASE/variant.config
 SYSTEM_CONFIG=$3
 . $SYSTEM_CONFIG
 
-TEMP=$TMPDIR
-# TEMP=/scratch/zojer/tmpdir
+if [ -d "$TMPDIR" ]; then
+  TEMP=$TMPDIR
+else
+  TEMP=/scratch/zojer/tmpdir
+fi
 
 OUTFILE=${BAM_NAME_BASE}_bwa_${IT}
 REF=${REF_FA}
@@ -38,7 +41,12 @@ echo "$JOB_ID started" >$PATH_LOGS/D02_${IT}_${JOB_ID}.txt
 
 # check if we have enough reads for subsampling, else take everything we have
 # BS=$( cat $PATH_PROJECTS_DATA/${PROJ_NAME}/info.txt | grep -e 'BothS' | cut -d' ' -f2 )
-BS=$( zcat $PATH_ALT_READS1 | awk 'END {count=NR/4; print count }' )
+VCAT=cat
+if [[ $PATH_ALT_READS1 == *gz ]]; then
+    VCAT=zcat
+fi
+
+BS=$( $VCAT $PATH_ALT_READS1 | awk 'END {count=NR/4; print count }' )
 if [ "$SUBSAMPLE_SIZE_ALT" -lt 0 ]; then
     sed -i 's/SUBSAMPLE_SIZE_ALT=.*/SUBSAMPLE_SIZE_ALT\='"$BS"'/' $PATH_PROJECTS_DATA/${PROJ_NAME}/variant.config
     echo "VARCAP_WARN: No readcount defined, $BS available, taking all reads available."

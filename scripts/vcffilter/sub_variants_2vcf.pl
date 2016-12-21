@@ -189,6 +189,67 @@ sub extract_lofreq2 {
     }
 }
 
+sub extract_freebayes {
+    my ($infile, $repeat, $caller, $min_reads) = @_;
+    open(my $handle, "<", $infile) || die "cannot open $infile: $!\n";
+    while( my $line = <$handle>){
+    	if ( $line =~ /^\w/){
+    		#print $line;
+    		my @splitline = split("\t", $line);
+    		chomp(@splitline);
+    		my $chrom = $splitline[0];
+    		my $pos = $splitline[1];
+    		# my $type = "SNP";
+    		# my $length = "0";
+    		my $ref_base = $splitline[3];
+    		my $var_base = $splitline[4];
+    		# get reads out of info field
+    		my ($reads_ref, $reads_alt, $type, $length);
+    		my @info = split(";",$splitline[7]);
+    		foreach my $info_tag (@info){
+				# ref reads
+    			if($info_tag =~ m/^RO=/){
+    				$info_tag =~ s/RO=//;
+    				$reads_ref = $info_tag;
+    			}
+    			# alt reads
+    			if($info_tag =~ m/^AO=/){
+    				$info_tag =~ s/AO=//;
+    				$reads_alt = $info_tag;
+    			}
+    			# type
+    			if($info_tag =~ m/^TYPE/){
+    				$info_tag =~ s/TYPE=//;
+    				$type = uc $info_tag;
+				# resolve COMPLEX type into SNP or INS
+				if($type eq "COMPLEX" && ( length $ref_base == length $var_base ) ){
+					$type = "SNP";
+    				} elsif ($type eq "COMPLEX" && ( length $ref_base < length $var_base ) ){
+					$type = "INS";
+				} elsif ($type eq "COMPLEX" && ( length $ref_base > length $var_base ) ){
+                                        $type = "DEL";
+                                } elsif ( $type eq "MNP" ){
+					$type = "SNP";
+				}
+			}
+    			# length
+    			if($info_tag =~ m/^LEN=/){
+    				$info_tag =~ s/LEN=//;
+    				if ( $type == "SNP" ){
+						$info_tag = "0";
+					}
+    				$length = $info_tag;
+    			}
+    			
+    		}
+    		# feed data to hashtable
+    		if ($reads_alt > $min_reads){
+    			add_data($pos, $caller, $repeat, $type, $length, $ref_base, $var_base, $reads_ref, $reads_alt, $chrom);
+    		}
+        }
+    }
+}
+
 sub extract_breakdancer {
     my ($infile, $repeat, $caller, $ref_format, $min_reads) = @_;
     my $type;
@@ -288,7 +349,7 @@ sub extract_pindel {
     		my $reads_alt = "nd";
     		if ($splitline[9] =~ /:[0-9]*\,/ ){
     			$splitline[9] =~ /:(\d+)\,(\d+)/;
-    			$reads_ref = $1;
+    			# $reads_ref = $1;
     			$reads_alt = $2;
     		} else {
     			$splitline[9] =~ /:(\d+)/;

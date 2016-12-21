@@ -1,6 +1,42 @@
 VARCAP README 3.0
 [VARiant Calling And Postfiltering]
 
+### Preface ###
+
+This software package is desigend to allow parallel processing of multiple samples an a server system. Additionally you will have to install all the software tools needed.
+If you do not have the experience or hardware equipment, you can use our online Galaxy instance (http://galaxy.csb.univie.ac.at) wich was designed for easy use.
+
+### I. SETUP AND DEPENDENCIES ###
+
+VarCap relies on a couple of installed software tools and packages for the whole workflow to work.
+
+- Perl 5.x
+- Python 2.x
+- Slurm
+- Bash
+- R
+
+Additionally you will have to install all tools from program.config and set their paths.
+
+- Trimmomatic
+- FastQC
+- Bwa-mem
+- Samtools (0.1.19)
+- Varscan2 (2.3.9)
+- Lofreq2 (2.1.2)
+- Picard tools
+- Breakdancer (1.1.2)
+- Pindel (0.2.4/0.2.5)
+- Delly (0.7.2)
+- Cortex_var (1.0.5.14)
+- Stampy
+- Vcftools
+- Vmatch
+- SNPEff (optional)
+
+
+### II. RUN VARCAP ###
+
 1. Preperation of project
 
 Go to the varcap directory and call the 00_setup_project.sh with the absolute path to the raw read file directory

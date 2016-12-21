@@ -22,6 +22,13 @@ else
   exit 1
 fi
 
+# remove previous caller files
+rm $PATH_LOFREQ_DATA/$OUTDIR/*
+rm $PATH_LOFREQ2_DATA/$OUTDIR/*
+rm $PATH_LOFREQ21_DATA/$OUTDIR/*
+rm $PATH_VARSCAN_DATA/$OUTDIR/*
+rm $PATH_FREEBAYES_DATA/$OUTDIR/*
+rm -r $PATH_CORTEX_DATA/$OUTDIR/*
 
 # run i times
 for ((  i = 1 ; i <= $REPEATS;  i++  ))
@@ -53,13 +60,13 @@ cd $PATH_SAMTOOLS_DATA/$OUTDIR
 SAMEXE="$PATH_SCRIPTS/run_sam_bcftools.sh $REF_FNA $BAM_MOD $PATH_SAMTOOLS"
 sbatch --dependency=afterok:${JOBLIST} $SAMEXE >>$PATH_LOGS/SLURM_C01_${i}.txt
 # run gatk
-# echo "run gatk:"
-# mkdir -p $PATH_GATK_DATA
-# mkdir -p $PATH_GATK_DATA/$OUTDIR
-# cd $PATH_GATK_DATA/$OUTDIR
+echo "run gatk:"
+mkdir -p $PATH_GATK_DATA
+mkdir -p $PATH_GATK_DATA/$OUTDIR
+cd $PATH_GATK_DATA/$OUTDIR
 # sh $PATH_SCRIPTS/run_gatk.sh $REF_FA $BAM_MOD $PATH_GATK_DATA/$OUTDIR $PATH_GATK $PATH_PICARD $PATH_SAMTOOLS
-# GATEXE="$PATH_SCRIPTS/run_gatk.sh $REF_FA $BAM_MOD $PATH_GATK_DATA/$OUTDIR $PATH_GATK $PATH_PICARD $PATH_SAMTOOLS"
-# sbatch --dependency=afterok:${JOBLIST} $GATEXE >>$PATH_LOGS/SLURM_C01_${i}.txt
+GATEXE="$PATH_SCRIPTS/run_gatk.sh $REF_FA $BAM_MOD $PATH_GATK_DATA/$OUTDIR $PATH_GATK $PATH_PICARD $PATH_SAMTOOLS"
+sbatch --dependency=afterok:${JOBLIST} $GATEXE >>$PATH_LOGS/SLURM_C01_${i}.txt
 # run varscan
 echo "run varscan:"
 mkdir -p $PATH_VARSCAN_DATA
@@ -92,6 +99,14 @@ cd $PATH_LOFREQ21_DATA/$OUTDIR
 # sh $PATH_SCRIPTS/run_lofreq21.sh $REF_FA $BAM_MOD $PATH_LOFREQ21_DATA/$OUTDIR $PATH_LOFREQ21 $PATH_SAMTOOLS
 LO21EXE="$PATH_SCRIPTS/run_lofreq21.sh $REF_FA $BAM_MOD $PATH_LOFREQ21_DATA/$OUTDIR $PATH_LOFREQ21 $PATH_SAMTOOLS"
 sbatch --dependency=afterok:${JOBLIST} $LO21EXE >>$PATH_LOGS/SLURM_C01_${i}.txt
+# run freebayes
+echo "run freebayes:"
+mkdir -p $PATH_FREEBAYES_DATA
+mkdir -p $PATH_FREEBAYES_DATA/$OUTDIR
+cd $PATH_FREEBAYES_DATA/$OUTDIR
+# sh $PATH_SCRIPTS/run_freebayes.sh $REF_FA $BAM_MOD $PATH_FREEBAYES_DATA/$OUTDIR $PATH_FREEBAYES $PATH_SAMTOOLS
+FBEXE="$PATH_SCRIPTS/run_freebayes.sh $REF_FA $BAM_MOD $PATH_FREEBAYES_DATA/$OUTDIR $PATH_FREEBAYES"
+sbatch --dependency=afterok:${JOBLIST} $FBEXE >>$PATH_LOGS/SLURM_C01_${i}.txt
 
 ### sv caller ###
 ##run breakdancer
