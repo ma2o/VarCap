@@ -1,1 +1,1 @@
-[a relative link]README_varcap_3.0.txt
+[README](README_varcap_3.0.txt)
